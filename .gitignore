@@ -1,0 +1,12 @@
+# Generated SQLite files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+db/load.sql
+
+# Editor / OS temporary files
+.DS_Store
+Thumbs.db
+~$*
+*.tmp
