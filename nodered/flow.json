@@ -1,0 +1,157 @@
+[
+  {
+    "id": "tab02",
+    "type": "tab",
+    "label": "Вариант 2 — загрузка",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "watch02",
+    "type": "watch",
+    "z": "tab02",
+    "name": "Изменение лога",
+    "files": "data/log.txt",
+    "recursive": "",
+    "x": 120,
+    "y": 100,
+    "wires": [
+      [
+        "read02"
+      ]
+    ]
+  },
+  {
+    "id": "inject02",
+    "type": "inject",
+    "z": "tab02",
+    "name": "Загрузить вручную",
+    "props": [],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "x": 120,
+    "y": 160,
+    "wires": [
+      [
+        "read02"
+      ]
+    ]
+  },
+  {
+    "id": "read02",
+    "type": "file in",
+    "z": "tab02",
+    "name": "Читать лог",
+    "filename": "data/log.txt",
+    "filenameType": "str",
+    "format": "utf8",
+    "chunk": false,
+    "sendError": true,
+    "encoding": "none",
+    "x": 320,
+    "y": 120,
+    "wires": [
+      [
+        "fn02"
+      ]
+    ]
+  },
+  {
+    "id": "fn02",
+    "type": "function",
+    "z": "tab02",
+    "name": "Разбор и FAULT",
+    "func": "const ranges={s1:[-30,30],s2:[0,100],s3:[0,1]};\nconst sql=[\"BEGIN;\", \"DELETE FROM readings;\", \"DELETE FROM events;\"];\nconst lines=String(msg.payload).replace(/^\\uFEFF/, '').split(/\\r?\\n/);\nfor (const raw of lines) {\n const parts=raw.trim().split(/\\s+/), kind=parts.shift(); if (!kind) continue;\n const f=Object.fromEntries(parts.map(p=>p.split('='))); const n=Number(f.n);\n if (!Number.isInteger(n) || n<1) { node.error('Некорректный номер измерения: '+raw,msg); return null; }\n const t=n*2;\n if(kind==='DATA') for(const s of ['s1','s2','s3']) {\n  const value=Number(f[s]); if(f[s]===undefined || !Number.isFinite(value)){node.error('Некорректное значение: '+raw,msg);return null;}\n  sql.push(`INSERT INTO readings(n,t_s,sensor,value) VALUES(${n},${t},'${s}',${value});`);\n  if(value<ranges[s][0] || value>ranges[s][1]) sql.push(`INSERT INTO events(n,t_s,type,message) VALUES(${n},${t},'FAULT','датчик ${s} вне диапазона');`);\n } else if(kind==='EVENT' && ['THRESHOLD','NORMAL'].includes(f.type)) sql.push(`INSERT INTO events(n,t_s,type,message) VALUES(${n},${t},'${f.type}','');`);\n else {node.error('Некорректная строка: '+raw,msg);return null;}\n}\nsql.push('COMMIT;'); msg.payload=sql.join('\\n')+'\\n'; return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 510,
+    "y": 120,
+    "wires": [
+      [
+        "file02"
+      ]
+    ]
+  },
+  {
+    "id": "file02",
+    "type": "file",
+    "z": "tab02",
+    "name": "Сохранить SQL",
+    "filename": "db/load.sql",
+    "filenameType": "str",
+    "appendNewline": false,
+    "createDir": false,
+    "overwriteFile": "true",
+    "encoding": "none",
+    "x": 710,
+    "y": 120,
+    "wires": [
+      [
+        "exec02"
+      ]
+    ]
+  },
+  {
+    "id": "exec02",
+    "type": "exec",
+    "z": "tab02",
+    "command": "sqlite3 db/variant.db \".read db/schema.sql\" \".read db/load.sql\"",
+    "addpay": false,
+    "append": "",
+    "useSpawn": "false",
+    "timer": "",
+    "winHide": false,
+    "oldrc": false,
+    "name": "Загрузить SQLite",
+    "x": 930,
+    "y": 120,
+    "wires": [
+      [
+        "debug02"
+      ],
+      [
+        "err02"
+      ],
+      [
+        "err02"
+      ]
+    ]
+  },
+  {
+    "id": "debug02",
+    "type": "debug",
+    "z": "tab02",
+    "name": "Вывод",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 1110,
+    "y": 80,
+    "wires": []
+  },
+  {
+    "id": "err02",
+    "type": "debug",
+    "z": "tab02",
+    "name": "Ошибки и код",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "x": 1120,
+    "y": 160,
+    "wires": []
+  }
+]
