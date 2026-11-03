@@ -102,7 +102,7 @@
     "id": "exec02",
     "type": "exec",
     "z": "tab02",
-    "command": "sqlite3 db/variant.db \".read db/schema.sql\" \".read db/load.sql\"",
+    "command": "node db/load.js",
     "addpay": false,
     "append": "",
     "useSpawn": "false",

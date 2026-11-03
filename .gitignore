@@ -10,3 +10,5 @@ db/load.sql
 Thumbs.db
 ~$*
 *.tmp
+
+nodered/runtime/
